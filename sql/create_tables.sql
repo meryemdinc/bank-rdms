@@ -1,46 +1,56 @@
+-- Customers
 CREATE TABLE customers (
     customer_id SERIAL PRIMARY KEY,
     full_name VARCHAR(100) NOT NULL,
-    tc_no CHAR(11) UNIQUE NOT NULL,
+    tc_no CHAR(11) NOT NULL UNIQUE,
     birth_place VARCHAR(50),
     birth_date DATE,
-    risk_limit NUMERIC(12,2) DEFAULT 10000.00,
-    created_at TIMESTAMP DEFAULT NOW()
+    risk_limit NUMERIC(15,2) DEFAULT 10000,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Accounts
 CREATE TABLE accounts (
     account_id SERIAL PRIMARY KEY,
-    customer_id INT NOT NULL REFERENCES customers(customer_id),
+    customer_id INT NOT NULL REFERENCES customers(customer_id) ON DELETE CASCADE,
     account_name VARCHAR(50) NOT NULL,
-    account_number CHAR(16) UNIQUE NOT NULL,
-    iban CHAR(26) UNIQUE NOT NULL,
-    balance NUMERIC(12,2) DEFAULT 0,
-    status BOOLEAN DEFAULT TRUE, -- TRUE=active, FALSE=inactive
-    created_at TIMESTAMP DEFAULT NOW()
+    account_number VARCHAR(20) NOT NULL UNIQUE,
+    iban CHAR(26) NOT NULL UNIQUE,
+    opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE
 );
+
+-- Cards
 CREATE TABLE cards (
     card_id SERIAL PRIMARY KEY,
-    account_id INT REFERENCES accounts(account_id),
-    card_number CHAR(16) UNIQUE NOT NULL,
-    card_type VARCHAR(20) NOT NULL, -- "account" veya "credit"
-    expiry_date DATE,
+    account_id INT NULL REFERENCES accounts(account_id) ON DELETE SET NULL,
+    card_number CHAR(16) NOT NULL UNIQUE,
+    expiry_month INT NOT NULL,
+    expiry_year INT NOT NULL,
     ccv CHAR(3),
-    limit NUMERIC(12,2) DEFAULT 0, -- kredi kartı limiti
-    active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT NOW()
+    limit_amount NUMERIC(15,2),
+    is_credit BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE
 );
+
+-- Transactions
 CREATE TABLE transactions (
     transaction_id SERIAL PRIMARY KEY,
-    card_id INT REFERENCES cards(card_id),
-    account_id INT REFERENCES accounts(account_id),
-    transaction_type VARCHAR(20) NOT NULL, -- "deposit", "withdraw", "payment"
-    amount NUMERIC(12,2) NOT NULL,
+    card_id INT NOT NULL REFERENCES cards(card_id) ON DELETE CASCADE,
+    account_id INT NULL REFERENCES accounts(account_id) ON DELETE SET NULL,
+    transaction_type_id INT NOT NULL,
+    amount NUMERIC(15,2) NOT NULL,
     description VARCHAR(100),
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Audit Logs
 CREATE TABLE audit_logs (
-    audit_id SERIAL PRIMARY KEY,
-    table_name VARCHAR(50) NOT NULL,
-    operation_type VARCHAR(10) NOT NULL, -- "INSERT", "UPDATE", "DELETE"
-    record_id INT NOT NULL,
-    operation_time TIMESTAMP DEFAULT NOW()
+    log_id SERIAL PRIMARY KEY,
+    table_name VARCHAR(50),
+    operation_type VARCHAR(10),
+    record_id INT,
+    old_data JSONB,
+    new_data JSONB,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
